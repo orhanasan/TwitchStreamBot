@@ -1,8 +1,7 @@
 exports.botConfig = {
-    bot_token: "BOT OAUTH TOKEN HERE",
-    channel_name: "CHANNEL NAME",
-    bot_username: "BOT USERNAME",
-    client_id: "TWITCH CLIENT ID HERE",
+    bot_token: "BOT TOKEN HERE",
+    channel_name: "CHANNEL NAME HERE",
+    bot_username: "BOT NAME HERE",
     link_spam_protection: {
         excludedRoles: [
             'moderator',
@@ -20,10 +19,16 @@ exports.botConfig = {
     },
     blacklist_protection: {
         timeout: 10,
-    }
+    },
+    isLocal: true,
 };
 
 exports.spotifyConfig = {
-    client_id: "CLIENT ID HERE",
-    client_secret: "CLIENT SECRET HERE",
+    client_id: "SPOTIFY API CLIENT ID",
+    client_secret: "SPOTIFY API CLIENT SECRET",
 };
+
+exports.twitchConfig = {
+    client_id: 'TWITCH API CLIENT ID',
+    client_secret: 'TWITCH API CLIENT SECRET',
+}
