@@ -59,3 +59,11 @@ typings/
 
 # next.js build output
 .next
+
+config.js
+
+errors.txt
+
+deneme.js
+
+*.json
