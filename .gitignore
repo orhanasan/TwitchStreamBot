@@ -67,3 +67,6 @@ errors.txt
 deneme.js
 
 *.json
+
+!package.json
+!package-lock.json
