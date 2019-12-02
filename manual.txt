@@ -1,0 +1,8 @@
+!komutekle <komut_adı> <argüman_sayısı> <rol_sayısı: 0 -herkes-> <rol_1: broadcaster|vip|moderator> <rol_2> ... <javascript_statement: client.say(target, `Zar attın: ${Math.ceil(Math.random() * 6)});`> 
+!sözekle <komut_adı> <yazdırılacak_şey>
+!komutsil <komut_adı>
+!blacklist ekle <kelime>
+!blacklist sil <kelime>
+!permit <user_name> <süre: dakika cinsinden>
+!announce ekle <identifier> <süre: saniye> <yazdılıcak şey>
+!announce sil <identifier>
