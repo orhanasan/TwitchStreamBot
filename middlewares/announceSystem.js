@@ -34,16 +34,6 @@ class AnnounceClass {
         if (this.announces.findIndex((value) => { return value.title == title }) != -1)
             return false;
 
-        const announceFunction = () => {
-            if (this.announces.findIndex((value) => { return value.title == title }) == -1)
-                return;
-
-            this.client.say('#' + this.channel_name, body);
-
-            setTimeout(announceFunction, interval * 1000);
-        }
-        setTimeout(announceFunction, Math.floor(Math.random() * 30000) + 30000);
-
         this.announces.push({
             title: title,
             body: body,
@@ -51,6 +41,16 @@ class AnnounceClass {
         });
 
         this.fs.writeFileSync(`./#${this.channel_name.toLowerCase()}-announces.json`, JSON.stringify(this.announces));
+
+        const announceFunction = () => {
+            if (this.announces.findIndex((value) => { return value.title == title }) == -1)
+                return;
+
+            this.client.say('#' + this.channel_name, body);
+
+            setTimeout(announceFunction, interval * 1000 + ( interval > 120 ? Math.floor(Math.random() * 30000) - 15000 : 0));
+        }
+        setTimeout(announceFunction, interval * 1000 + ( interval > 120 ? Math.floor(Math.random() * 30000) - 15000 : 0));
 
         return true;
     }

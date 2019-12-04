@@ -192,29 +192,7 @@ class Commands {
                                 this.client.say(target, 'Yayın açık değil');
                                 return;
                             } else {
-                                const startedAt = Date.parse(body.data[0].started_at);
-                                var msecs = Math.abs(new Date() - startedAt);
-
-                                const days = Math.floor(msecs / (1000 * 60 * 60 * 24));
-                                msecs -= days * 1000 * 60 * 60 * 24;
-                                const hours = Math.floor(msecs / (1000 * 60 * 60));
-                                msecs -= hours * 1000 * 60 * 60;
-                                const mins = Math.floor((msecs / (1000 * 60)));
-                                msecs -= mins * 1000 * 60;
-                                const secs = Math.floor(msecs / 1000);
-                                msecs -= secs * 1000;
-
-                                var string = "";
-                                if (days > 0)
-                                    string += `${days} gün `;
-                                if (hours > 0)
-                                    string += `${hours} saat `;
-                                if (mins > 0)
-                                    string += `${mins} dakika `;
-                                if (secs > 0)
-                                    string += `${secs} saniye `;
-
-                                string = string.trim();
+                                const string = this.parseIsoString(body.data[0].started_at);
 
                                 this.client.say(target, `Yayının başlangıcından itibaren ${string} geçti!`);
                             }
@@ -253,7 +231,7 @@ class Commands {
                 name: 'permit',
                 function: (msg, target, context) => {
                     try {
-                        if (modCheck(context)) {
+                        if (!modCheck(context)) {
                             errorHandler(this.client, target, context['display-name'], `Permissions do not match for command execution: permit`, `Bu komutu kullanmaya izniniz yok!`);
                             return;
                         }
@@ -265,7 +243,7 @@ class Commands {
                         }
 
                         if (this.linkSpamMiddleware.addToPermittedList(args[1], args[2]))
-                            this.client.say(target, `${comms[1]} adlı kullanıcı ${comms[2]} dakika boyunca link atabilecek!`);
+                            this.client.say(target, `${args[1]} adlı kullanıcı ${args[2]} dakika boyunca link atabilecek!`);
                     } catch (error) {
                         errorHandler(this.client, target, context['display-name'], `An error occured: ${error.toString()}`, 'Bu komut çalıştırılamadı!');
                     }
@@ -276,18 +254,19 @@ class Commands {
                 function: (msg, target, context) => {
                     try {
                         if (!modCheck(context)) {
-                            errorHandler(this.client, target, context['display-name'], `Permissions do not match for command execution: blacklist`, `Bu komutu kullanmaya izniniz yok!`);
+                            errorHandler(this.client, target, context['display-name'], `Permissions do not match for command execution: announce`, `Bu komutu kullanmaya izniniz yok!`);
                             return;
                         }
                         const args = msg.split(' ');
                         if (args[1] == 'ekle') {
-                            const spaceCount = 5;
+                            const spaceCount = 4;
 
                             var elapsed = 0;
                             var spacePos = -1;
                             for (let index = 0; index < msg.length; index++) {
-                                if (msg.charAt(index) == ' ')
+                                if (msg.charAt(index) == ' ') {
                                     elapsed++;
+                                }
 
                                 if (elapsed == spaceCount) {
                                     spacePos = index + 1;
@@ -295,17 +274,19 @@ class Commands {
                                 }
                             }
 
+                            console.log(spacePos);
+
                             const title = args[2];
                             const interval = parseInt(args[3]);
                             const body = msg.substring(spacePos);
 
-                            if (this.announceMiddleware.addAnnounce(title, body, interval)) {
-                                this.client.say(target, 'Duyuru başarı ile eklendi');
-                            } else
+                            if (this.announceMiddleware.addAnnounce(title, body, interval))
+                                helpHandler(this.client, target, context['display-name'], `New announce added: ${title}`, 'Duyuru başarı ile eklendi');
+                            else
                                 errorHandler(this.client, target, context['display-name'], `A word that already is in announce liste is tried to be added to announce list`, 'Olan bir duyuruyu duyuru olarak eklediniz!');
                         } else if (args[1] == 'sil') {
                             if (this.announceMiddleware.removeAnnounce(args[2])) {
-                                this.client.say(target, 'Duyuru başarı ile silindi');
+                                helpHandler(this.client, target, context['display-name'], `An announce removed: ${title}`, 'Duyuru başarı ile silindi');
                             } else
                                 errorHandler(this.client, target, context['display-name'], `A word that is not in announce list is tried to be removed from announce list`, 'Olmayan bir duyuruyu silmeye çalıştınız!');
                         }
@@ -316,12 +297,11 @@ class Commands {
             }
         ]
 
-        if (this.spotify_config) {
+        if (this.spotify_config && this.twitch_config) {
             var express = require('express');
             var app = express();
 
-            if (!this.is_local)
-            {
+            if (!this.is_local) {
                 app.get('/register_spotify', (req, res) => {
                     var scopes = ['user-read-private', 'user-read-email', 'user-read-currently-playing', 'user-read-playback-state'];
                     var spotifyAuthorizeURL = this.spotifyApi.createAuthorizeURL(scopes, 'state');
@@ -363,7 +343,9 @@ class Commands {
             });
 
             app.get('/callback_twitch', async (req, res) => {
-                const { code } = req.query;
+                const {
+                    code
+                } = req.query;
 
                 this.twitchApi.clientID = this.twitch_config.client_id;
 
@@ -371,7 +353,11 @@ class Commands {
                     clientSecret: this.twitch_config.client_secret,
                     redirectURI: 'http://localhost:3000',
                     code: code
-                }, (_, data) => {this.twitchAuth = data; res.send('OK'); console.log('Twitch tokens are obtained!')});
+                }, (_, data) => {
+                    this.twitchAuth = data;
+                    res.send('OK');
+                    console.log('Twitch tokens are obtained!')
+                });
             });
 
             var server = app.listen(3000, () => {
@@ -387,8 +373,7 @@ class Commands {
 
                 this.spotifyApi = new SpotifyWebApi(credentials);
 
-                if (this.is_local)
-                {
+                if (this.is_local) {
                     var scopes = ['user-read-private', 'user-read-email', 'user-read-currently-playing', 'user-read-playback-state'];
                     var spotifyAuthorizeURL = this.spotifyApi.createAuthorizeURL(scopes, 'state');
 
@@ -407,117 +392,200 @@ class Commands {
                 }
 
                 this.special_commands_container = this.special_commands_container.concat([
-                {
-                    name: 'playing',
-                    function: (msg, target, context) => {
-                        this.spotifyApi.refreshAccessToken().then((data) => {
-                            this.spotifyApi.setAccessToken(data.body['access_token']);
-                            this.spotifyApi.getMyCurrentPlaybackState({}).then((data2) => {
-                                const response = data2.body.item;
-                                if (data2.body.is_playing) {
-                                    var artists = "";
-                                    for (let index = 0; index < response.artists.length; index++) {
-                                        const element = response.artists[index];
+                    {
+                        name: 'playing',
+                        function: (msg, target, context) => {
+                            this.spotifyApi.refreshAccessToken().then((data) => {
+                                this.spotifyApi.setAccessToken(data.body['access_token']);
+                                this.spotifyApi.getMyCurrentPlaybackState({}).then((data2) => {
+                                    const response = data2.body.item;
+                                    if (data2.body.is_playing) {
+                                        var artists = "";
+                                        for (let index = 0; index < response.artists.length; index++) {
+                                            const element = response.artists[index];
 
-                                        artists += element.name;
+                                            artists += element.name;
 
-                                        if (index < response.artists.length - 1)
-                                            artists += ", ";
+                                            if (index < response.artists.length - 1)
+                                                artists += ", ";
+                                        }
+
+                                        this.client.say(target, `Şu an çalan şarkı: ${artists} - ${response.name}`);
+                                    } else {
+                                        errorHandler(this.client, target, context['display-name'], `Currently playing song cannot be found.`, 'Çalınan şarkı bulunamadı!');
                                     }
+                                }, (err) => {
+                                    errorHandler(this.client, target, context['display-name'], err.toString(), 'Çalınan şarkı bulunamadı!');
+                                });
+                            })
+                        }
+                    },
+                    {
+                        name: 'game',
+                        function: (msg, target, context) => {
+                            try {
+                                const args = msg.split(' ');
+                                if (args.length > 1) {
+                                    if (!modCheck(context)) {
+                                        errorHandler(this.client, target, context['display-name'], `Permissions do not match for command execution: blacklist`, `Bu komutu kullanmaya izniniz yok!`);
+                                        return;
+                                    }
+                                    const gameString = msg.substring(6);
 
-                                    this.client.say(target, `Şu an çalan şarkı: ${artists} - ${response.name}`);
+                                    this.twitchApi.auth.refreshToken({
+                                        clientSecret: this.twitch_config.client_secret,
+                                        refreshToken: this.twitchAuth.refresh_token
+                                    }, (err, tokenData) => {
+                                        if (err != null)
+                                            throw Error(err);
+                                        this.twitchAuth = tokenData;
+
+                                        this.twitchApi.channels.channel({
+                                            auth: this.twitchAuth.access_token
+                                        }, (err2, channelData) => {
+                                            if (err2 != null)
+                                                throw Error(err2);
+
+                                            this.twitchApi.channels.updateChannel({
+                                                auth: this.twitchAuth.access_token,
+                                                channelID: channelData._id,
+                                                game: gameString
+                                            }, (err3, responseData) => {
+                                                if (err3 != null)
+                                                    throw Error(err3);
+
+                                                this.client.say(target, `Oyun ${responseData.game} yapıldı!`);
+                                            })
+                                        })
+                                    });
                                 } else {
-                                    errorHandler(this.client, target, context['display-name'], `Currently playing song cannot be found.`, 'Çalınan şarkı bulunamadı!');
+                                    this.twitchApi.auth.refreshToken({
+                                        clientSecret: this.twitch_config.client_secret,
+                                        refreshToken: this.twitchAuth.refresh_token
+                                    }, (err, tokenData) => {
+                                        if (err != null)
+                                            throw Error(err);
+                                        this.twitchAuth = tokenData;
+
+                                        this.twitchApi.channels.channel({
+                                            auth: this.twitchAuth.access_token
+                                        }, (err2, channelData) => {
+                                            if (err2 != null)
+                                                throw Error(err2);
+
+                                            this.client.say(target, `Oyun: ${channelData.game}!`);
+                                        })
+                                    });
+
                                 }
-                            }, (err) => {
-                                errorHandler(this.client, target, context['display-name'], err.toString(), 'Çalınan şarkı bulunamadı!');
-                            });
-                        })
-                    }
-                },
-                {
-                    name: 'game',
-                    function: (msg, target, context) => {
-                        try {
-                            if (!modCheck(context)) {
-                                errorHandler(this.client, target, context['display-name'], `Permissions do not match for command execution: blacklist`, `Bu komutu kullanmaya izniniz yok!`);
-                                return;
+                            } catch (error) {
+                                errorHandler(this.client, target, context['display-name'], `An error occured: ${error.toString()}`, 'Bu komut çalıştırılamadı!');
                             }
-                            const gameString = msg.substring(6);
-
-                            this.twitchApi.auth.refreshToken({
-                                clientSecret: this.twitch_config.client_secret,
-                                refreshToken: this.twitchAuth.refresh_token
-                            }, (err, tokenData) => {
-                                if (err != null)
-                                    throw Error(err);
-                                this.twitchAuth = tokenData;
-
-                                this.twitchApi.channels.channel({
-                                    auth: this.twitchAuth.access_token
-                                }, (err2, channelData) => {
-                                    if (err2 != null)
-                                        throw Error(err2);
-
-                                    this.twitchApi.channels.updateChannel( {
-                                        auth: this.twitchAuth.access_token,
-                                        channelID: channelData._id,
-                                        game: gameString
-                                    }, (err3, responseData) => {
-                                        if (err3 != null)
-                                            throw Error(err3);
-
-                                        this.client.say(target, `Oyun ${responseData.game} yapıldı!`);
-                                    })
-                                })
-                            });
-                        } catch (error) {
-                            errorHandler(this.client, target, context['display-name'], `An error occured: ${error.toString()}`, 'Bu komut çalıştırılamadı!');
                         }
-                    }
-                },
-                {
-                    name: 'title',
-                    function: (msg, target, context) => {
-                        try {
-                            if (!modCheck(context)) {
-                                errorHandler(this.client, target, context['display-name'], `Permissions do not match for command execution: blacklist`, `Bu komutu kullanmaya izniniz yok!`);
-                                return;
+                    },
+                    {
+                        name: 'title',
+                        function: (msg, target, context) => {
+                            try {
+                                const args = msg.split(' ');
+                                if (args.length > 1) { 
+                                    if (!modCheck(context)) {
+                                        errorHandler(this.client, target, context['display-name'], `Permissions do not match for command execution: blacklist`, `Bu komutu kullanmaya izniniz yok!`);
+                                        return;
+                                    }
+                                    const titleString = msg.substring(6);
+    
+                                    this.twitchApi.auth.refreshToken({
+                                        clientSecret: this.twitch_config.client_secret,
+                                        refreshToken: this.twitchAuth.refresh_token
+                                    }, (err, tokenData) => {
+                                        if (err != null)
+                                            throw Error(err);
+                                        this.twitchAuth = tokenData;
+    
+                                        this.twitchApi.channels.channel({
+                                            auth: this.twitchAuth.access_token
+                                        }, (err2, channelData) => {
+                                            if (err2 != null)
+                                                throw Error(err2);
+    
+                                            this.twitchApi.channels.updateChannel({
+                                                auth: this.twitchAuth.access_token,
+                                                channelID: channelData._id,
+                                                status: titleString
+                                            }, (err3, responseData) => {
+                                                if (err3 != null)
+                                                    throw Error(err3);
+    
+                                                this.client.say(target, `Başlık '${responseData.status}' yapıldı!`);
+                                            })
+                                        })
+                                    });
+                                } else {
+                                    this.twitchApi.auth.refreshToken({
+                                        clientSecret: this.twitch_config.client_secret,
+                                        refreshToken: this.twitchAuth.refresh_token
+                                    }, (err, tokenData) => {
+                                        if (err != null)
+                                            throw Error(err);
+                                        this.twitchAuth = tokenData;
+    
+                                        this.twitchApi.channels.channel({
+                                            auth: this.twitchAuth.access_token
+                                        }, (err2, channelData) => {
+                                            if (err2 != null)
+                                                throw Error(err2);
+    
+                                            this.client.say(target, `Başlık :'${channelData.status}'!`);
+                                        })
+                                    });
+                                }
+                            } catch (error) {
+                                errorHandler(this.client, target, context['display-name'], `An error occured: ${error.toString()}`, 'Bu komut çalıştırılamadı!');
                             }
-                            const titleString = msg.substring(6);
-
-                            this.twitchApi.auth.refreshToken({
-                                clientSecret: this.twitch_config.client_secret,
-                                refreshToken: this.twitchAuth.refresh_token
-                            }, (err, tokenData) => {
-                                if (err != null)
-                                    throw Error(err);
-                                this.twitchAuth = tokenData;
-
-                                this.twitchApi.channels.channel({
-                                    auth: this.twitchAuth.access_token
-                                }, (err2, channelData) => {
-                                    if (err2 != null)
-                                        throw Error(err2);
-
-                                    this.twitchApi.channels.updateChannel( {
-                                        auth: this.twitchAuth.access_token,
-                                        channelID: channelData._id,
-                                        status: titleString
-                                    }, (err3, responseData) => {
-                                        if (err3 != null)
-                                            throw Error(err3);
-
-                                        this.client.say(target, `Başlık '${responseData.status}' yapıldı!`);
-                                    })
-                                })
-                            });
-                        } catch (error) {
-                            errorHandler(this.client, target, context['display-name'], `An error occured: ${error.toString()}`, 'Bu komut çalıştırılamadı!');
                         }
-                    }
-                },
-            ])
+                    },
+                    {
+                        name: 'follow',
+                        function: (msg, target, context) => {
+                            try {
+                                this.twitchApi.auth.refreshToken({
+                                    clientSecret: this.twitch_config.client_secret,
+                                    refreshToken: this.twitchAuth.refresh_token
+                                }, (err, tokenData) => {
+                                    if (err != null)
+                                        throw Error(err);
+                                    this.twitchAuth = tokenData;
+
+                                    this.twitchApi.channels.channel({
+                                        auth: this.twitchAuth.access_token
+                                    }, (err2, channelData) => {
+                                        if (err2 != null)
+                                            throw Error(err2);
+
+                                        this.twitchApi.users.checkFollow({
+                                            auth: this.twitchAuth.access_token,
+                                            channelID: channelData._id,
+                                            userID: context['user-id'],
+                                        }, (err3, responseData) => {
+                                            if (err3 != null)
+                                                throw Error(err3);
+
+                                            if (responseData.error) {
+                                                this.client.say(target, `Takip bulunamadı!`);
+                                            } else {
+                                                const string = this.parseIsoString(responseData.created_at);
+                                                this.client.say(target, `${context['display-name']}, takip süren: ${string}!`);
+                                            }
+                                        })
+                                    })
+                                });
+                            } catch (error) {
+                                errorHandler(this.client, target, context['display-name'], `An error occured: ${error.toString()}`, 'Bu komut çalıştırılamadı!');
+                            }
+                        }
+                    },
+                ])
             });
         }
     }
@@ -579,6 +647,42 @@ class Commands {
                 return false;
             }
         }
+    }
+
+    parseIsoString(date) {
+        const startedAt = Date.parse(date);
+        var msecs = Math.abs(new Date() - startedAt);
+
+        const years = Math.floor(msecs / (1000 * 60 * 60 * 24 * 365));
+        msecs -= years * 1000 * 60 * 60 * 24 * 365;
+        const months = Math.floor(msecs / (1000 * 60 * 60 * 24 * 30));
+        msecs -= months * 1000 * 60 * 60 * 24 * 30;
+        const days = Math.floor(msecs / (1000 * 60 * 60 * 24));
+        msecs -= days * 1000 * 60 * 60 * 24;
+        const hours = Math.floor(msecs / (1000 * 60 * 60));
+        msecs -= hours * 1000 * 60 * 60;
+        const mins = Math.floor((msecs / (1000 * 60)));
+        msecs -= mins * 1000 * 60;
+        const secs = Math.floor(msecs / 1000);
+        msecs -= secs * 1000;
+
+        var string = "";
+        if (years > 0)
+            string += `${years} yıl `;
+        if (months > 0)
+            string += `${months} ay `;
+        if (days > 0)
+            string += `${days} gün `;
+        if (hours > 0)
+            string += `${hours} saat `;
+        if (mins > 0)
+            string += `${mins} dakika `;
+        if (secs > 0)
+            string += `${secs} saniye `;
+
+        string = string.trim();
+
+        return string;
     }
 }
 

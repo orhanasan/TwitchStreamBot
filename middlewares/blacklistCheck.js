@@ -18,11 +18,10 @@ class BlacklistMiddleware {
 
     runMiddleware(msg, context, target) {
         if (!modCheck(context)) {
-            msg = msg.toLowerCase();
             for (let index = 0; index < this.blacklist.length; index++) {
-                const element = this.blacklist[index].toLowerCase();
+                const element = new RegExp(this.blacklist[index]);
 
-                if (msg.match(element) != null) {
+                if (!!element.test(msg)) {
                     this.client.say(target, `${context['display-name']}, blacklistteki bir kelimeyi göndermek yasak!`);
                     this.client.timeout(target, context['username'], this.timeout, 'Blacklisted kelime'); // Purge
                     return false;
@@ -34,7 +33,7 @@ class BlacklistMiddleware {
 
     addToBlacklist(word) {
         if (this.blacklist.findIndex((value) => { return value == word }) == -1) {
-            this.blacklist.push(word);
+            this.blacklist.push(word.toString());
             this.fs.writeFileSync(`./#${this.channel_name.toLowerCase()}-blacklist.json`, JSON.stringify(this.blacklist), {flag: 'w'});
             return true;
         }
