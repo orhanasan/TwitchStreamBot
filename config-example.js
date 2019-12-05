@@ -31,4 +31,9 @@ exports.spotifyConfig = {
 exports.twitchConfig = {
     client_id: 'TWITCH API CLIENT ID',
     client_secret: 'TWITCH API CLIENT SECRET',
-}
+};
+
+exports.serverConfig = {
+    hostname: 'localhost',
+    port: 30000,
+};

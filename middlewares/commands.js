@@ -10,6 +10,7 @@ class Commands {
         this.client_id = config.client_id;
         this.spotify_config = config.spotifyConfig;
         this.twitch_config = config.twitchConfig;
+        this.server_config = config.serverConfig;
         this.is_local = config.isLocal;
         this.timeout = config.timeout;
         this.client = client;
@@ -313,7 +314,7 @@ class Commands {
                     let twitchOauth = require('simple-oauth2').create(this.twitchTokenOption);
                     var scopes = ['clips:edit', 'channel_editor', 'channel_subscriptions', 'channel_read', 'channel_subscriptions', 'channel_commercial'];
                     const twitchAuthorizeURL = twitchOauth.authorizationCode.authorizeURL({
-                        redirect_uri: 'http://localhost:3000/callback_twitch',
+                        redirect_uri: `http://${this.server_config.hostname}:${this.server_config.port}/callback_twitch`,
                         scope: scopes,
                         state: 'state',
                     })
@@ -351,7 +352,7 @@ class Commands {
 
                 this.twitchApi.auth.getAccessToken({
                     clientSecret: this.twitch_config.client_secret,
-                    redirectURI: 'http://localhost:3000',
+                    redirectURI: `http://${this.server_config.hostname}:${this.server_config.port}`,
                     code: code
                 }, (_, data) => {
                     this.twitchAuth = data;
@@ -360,7 +361,7 @@ class Commands {
                 });
             });
 
-            var server = app.listen(3000, () => {
+            var server = app.listen(this.server_config.port, () => {
                 console.log('OAuth2.0 server is ready and up!');
 
                 const SpotifyWebApi = require('spotify-web-api-node');
@@ -368,7 +369,7 @@ class Commands {
                 var credentials = {
                     clientId: this.spotify_config.client_id,
                     clientSecret: this.spotify_config.client_secret,
-                    redirectUri: 'http://localhost:3000/callback_spotify'
+                    redirectUri: `http://${this.server_config.hostname}:${this.server_config.port}/callback_spotify`,
                 };
 
                 this.spotifyApi = new SpotifyWebApi(credentials);
@@ -382,7 +383,7 @@ class Commands {
                     let twitchOauth = require('simple-oauth2').create(this.twitchTokenOption);
                     scopes = ['clips:edit', 'channel_editor', 'channel_subscriptions', 'channel_read', 'channel_subscriptions', 'channel_commercial'];
                     const twitchAuthorizeURL = twitchOauth.authorizationCode.authorizeURL({
-                        redirect_uri: 'http://localhost:3000/callback_twitch',
+                        redirect_uri: `http://${this.server_config.hostname}:${this.server_config.port}/callback_twitch`,
                         scope: scopes,
                         state: 'state',
                     })
@@ -494,7 +495,7 @@ class Commands {
                                         return;
                                     }
                                     const titleString = msg.substring(6);
-    
+
                                     this.twitchApi.auth.refreshToken({
                                         clientSecret: this.twitch_config.client_secret,
                                         refreshToken: this.twitchAuth.refresh_token
@@ -502,13 +503,13 @@ class Commands {
                                         if (err != null)
                                             throw Error(err);
                                         this.twitchAuth = tokenData;
-    
+
                                         this.twitchApi.channels.channel({
                                             auth: this.twitchAuth.access_token
                                         }, (err2, channelData) => {
                                             if (err2 != null)
                                                 throw Error(err2);
-    
+
                                             this.twitchApi.channels.updateChannel({
                                                 auth: this.twitchAuth.access_token,
                                                 channelID: channelData._id,
@@ -516,7 +517,7 @@ class Commands {
                                             }, (err3, responseData) => {
                                                 if (err3 != null)
                                                     throw Error(err3);
-    
+
                                                 this.client.say(target, `Başlık '${responseData.status}' yapıldı!`);
                                             })
                                         })

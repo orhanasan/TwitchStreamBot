@@ -37,6 +37,7 @@ var commandsMiddleware = new CommandsMiddleware({
     client_id: config.botConfig.client_id,
     spotifyConfig: config.spotifyConfig,
     twitchConfig: config.twitchConfig,
+    serverConfig: config.serverConfig,
     isLocal: config.botConfig.isLocal,
     timeout: config.botConfig.spam_protection.timeout,
 }, client, linkSpamMiddleWare, blacklistMiddleware, announceMiddleware);
@@ -54,7 +55,7 @@ const messageHandler = (target, context, msg, self) => {
 
 const connectedHandler = (addr, port) => {
     console.log(`* Connected to ${addr}:${port}`);
-    client.say('#' + config.botConfig.channel_name, 'Yılmadım ayaktayım! ResidentSleeper');
+    // client.say('#' + config.botConfig.channel_name, 'Yılmadım ayaktayım! ResidentSleeper');
 }
 
 client.on('message', messageHandler);

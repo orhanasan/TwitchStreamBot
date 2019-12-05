@@ -22,8 +22,6 @@ class LinkSpamMiddleware {
                 }
             }
 
-            console.log(msg);
-
             if (!(isExcluded && !this.validURL(msg))) {
                 if (context['badges'] == null) {
                     var excludedLinksStr = "";
