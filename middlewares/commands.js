@@ -275,8 +275,6 @@ class Commands {
                                 }
                             }
 
-                            console.log(spacePos);
-
                             const title = args[2];
                             const interval = parseInt(args[3]);
                             const body = msg.substring(spacePos);
@@ -284,10 +282,10 @@ class Commands {
                             if (this.announceMiddleware.addAnnounce(title, body, interval))
                                 helpHandler(this.client, target, context['display-name'], `New announce added: ${title}`, 'Duyuru başarı ile eklendi');
                             else
-                                errorHandler(this.client, target, context['display-name'], `A word that already is in announce liste is tried to be added to announce list`, 'Olan bir duyuruyu duyuru olarak eklediniz!');
+                                errorHandler(this.client, target, context['display-name'], `A word that already is in announce list is tried to be added to announce list`, 'Olan bir duyuruyu duyuru olarak eklediniz!');
                         } else if (args[1] == 'sil') {
                             if (this.announceMiddleware.removeAnnounce(args[2])) {
-                                helpHandler(this.client, target, context['display-name'], `An announce removed: ${title}`, 'Duyuru başarı ile silindi');
+                                helpHandler(this.client, target, context['display-name'], `An announce removed: ${args[2]}`, 'Duyuru başarı ile silindi');
                             } else
                                 errorHandler(this.client, target, context['display-name'], `A word that is not in announce list is tried to be removed from announce list`, 'Olmayan bir duyuruyu silmeye çalıştınız!');
                         }
@@ -295,7 +293,56 @@ class Commands {
                         errorHandler(this.client, target, context['display-name'], `An error occured: ${error.toString()}`, 'Bu komut çalıştırılamadı!');
                     }
                 }
-            }
+            },
+            {
+                name: 'counter',
+                function: (msg, target, context) => {
+                    try {
+                        const args = msg.split(' ');
+                        if (args[1] == 'ekle') {
+                            if (!modCheck(context)) {
+                                errorHandler(this.client, target, context['display-name'], `Permissions do not match for command execution: announce`, `Bu komutu kullanmaya izniniz yok!`);
+                                return;
+                            }
+                            const spaceCount = 3;
+
+                            var elapsed = 0;
+                            var spacePos = -1;
+                            for (let index = 0; index < msg.length; index++) {
+                                if (msg.charAt(index) == ' ') {
+                                    elapsed++;
+                                }
+
+                                if (elapsed == spaceCount) {
+                                    spacePos = index + 1;
+                                    break;
+                                }
+                            }
+
+                            const name = args[2];
+                            const synthax = msg.substring(spacePos);
+
+                            if (this.counterMiddleware.addCounter(name, synthax))
+                                helpHandler(this.client, target, context['display-name'], `New counter added: ${name}`, 'Sayaç başarı ile eklendi');
+                            else
+                                errorHandler(this.client, target, context['display-name'], `A word that already is in counter list is tried to be added to counter list`, 'Olan bir sayacı sayaç olarak eklediniz!');
+                        } else if (args[1] == 'sil') {
+                            if (!modCheck(context)) {
+                                errorHandler(this.client, target, context['display-name'], `Permissions do not match for command execution: counter`, `Bu komutu kullanmaya izniniz yok!`);
+                                return;
+                            }
+                            if (this.counterMiddleware.removeCounter(args[2])) {
+                                helpHandler(this.client, target, context['display-name'], `A counter removed: ${args[2]}`, 'Sayaç başarı ile silindi');
+                            } else
+                                errorHandler(this.client, target, context['display-name'], `A word that is not in counter list is tried to be removed from counter list`, 'Olmayan bir sayacı silmeye çalıştınız!');
+                        } else {
+                            
+                        }
+                    } catch (error) {
+                        errorHandler(this.client, target, context['display-name'], `An error occured: ${error.toString()}`, 'Bu komut çalıştırılamadı!');
+                    }
+                }
+            },
         ]
 
         if (this.spotify_config && this.twitch_config) {
@@ -338,9 +385,9 @@ class Commands {
                     this.spotifyApi.setAccessToken(tokens['access_token']);
                     this.spotifyApi.setRefreshToken(tokens['refresh_token']);
 
+                    res.send('Spotify is configured!');
                     console.log('Spotify tokens are obtained!');
                 })
-                res.send('Spotify is configured!');
             });
 
             app.get('/callback_twitch', async (req, res) => {
@@ -356,7 +403,7 @@ class Commands {
                     code: code
                 }, (_, data) => {
                     this.twitchAuth = data;
-                    res.send('OK');
+                    res.send('Twitch is configured!');
                     console.log('Twitch tokens are obtained!')
                 });
             });
