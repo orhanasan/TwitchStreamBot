@@ -444,7 +444,7 @@ class Commands {
 
                             const randIndex = Math.floor(Math.random() * this.quote_container.length);
                             const randomQuote = this.quote_container[randIndex];
-                            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: 'numeric', second: 'numeric', timeZoneName: 'GMT+3' };
+                            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: 'numeric', second: 'numeric', timeZone: 'Europe/Istanbul' };
                             this.client.say(target, `${randomQuote.quote}, ${randomQuote.quotedFrom} - ${new Date(randomQuote.date).toLocaleDateString('tr-TR', options)}`);
                         }
                     } catch (error) {
