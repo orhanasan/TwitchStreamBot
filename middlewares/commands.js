@@ -16,6 +16,7 @@ class Commands {
         this.client = client;
         this.command_container = [];
         this.counter_container = [];
+        this.quote_container = [];
         this.linkSpamMiddleware = linkSpamMiddleware;
         this.blacklistMiddleware = blacklistMiddleware;
         this.announceMiddleware = announceMiddleware;
@@ -44,6 +45,11 @@ class Commands {
         if (this.fs.existsSync(`./#${this.channel_name.toLowerCase()}-counters.json`)) {
             const countersRaw = this.fs.readFileSync(`./#${this.channel_name.toLowerCase()}-counters.json`);
             this.counter_container = JSON.parse(countersRaw);
+        }
+
+        if (this.fs.existsSync(`./#${this.channel_name.toLowerCase()}-quotes.json`)) {
+            const quotesRaw = this.fs.readFileSync(`./#${this.channel_name.toLowerCase()}-quotes.json`);
+            this.quote_container = JSON.parse(quotesRaw);
         }
 
         this.special_commands_container = [
@@ -173,6 +179,7 @@ class Commands {
                     try {
                         var string = "";
                         var totalContainer = this.command_container.concat(this.special_commands_container).concat(this.counter_container);
+                        totalContainer.sort((a, b) => { return a.name.localeCompare(b.name); })
                         totalContainer.forEach((value, index) => {
                             string += "!" + value['name'];
                             if (index < totalContainer.length - 1)
@@ -307,7 +314,7 @@ class Commands {
                         const args = msg.split(' ');
                         if (args[1] == 'ekle') {
                             if (!modCheck(context)) {
-                                errorHandler(this.client, target, context['display-name'], `Permissions do not match for command execution: announce`, `Bu komutu kullanmaya izniniz yok!`);
+                                errorHandler(this.client, target, context['display-name'], `Permissions do not match for command execution: counter`, `Bu komutu kullanmaya izniniz yok!`);
                                 return;
                             }
                             const spaceCount = 3;
@@ -367,6 +374,77 @@ class Commands {
                                 flag: 'w'
                             });
                             helpHandler(this.client, target, context['display-name'], `A counter removed: ${args[2]}`, 'Sayaç başarı ile silindi');
+                        }
+                    } catch (error) {
+                        errorHandler(this.client, target, context['display-name'], `An error occured: ${error.toString()}`, 'Bu komut çalıştırılamadı!');
+                    }
+                }
+            },
+            {
+                name: 'quote',
+                function: (msg, target, context) => {
+                    try {
+                        const args = msg.split(' ');
+                        if (args[1] == 'ekle') {
+                            if (!modCheck(context)) {
+                                errorHandler(this.client, target, context['display-name'], `Permissions do not match for command execution: quote`, `Bu komutu kullanmaya izniniz yok!`);
+                                return;
+                            }
+                            const spaceCount = 2;
+
+                            var elapsed = 0;
+                            var spacePos = -1;
+                            for (let index = 0; index < msg.length; index++) {
+                                if (msg.charAt(index) == ' ') {
+                                    elapsed++;
+                                }
+
+                                if (elapsed == spaceCount) {
+                                    spacePos = index + 1;
+                                    break;
+                                }
+                            }
+
+                            const newQuote = {
+                                quote: msg.substring(spacePos),
+                                date: new Date().toISOString(),
+                            };
+
+                            this.quote_container.push(newQuote);
+
+                            this.fs.writeFileSync(`./${target}-quotes.json`, JSON.stringify(this.quote_container), {
+                                flag: 'w'
+                            });
+                            helpHandler(this.client, target, context['display-name'], `New quote added at ${newQuote.date.toLocaleString('en-US')} with content: ${newQuote.quote}`, 'Alıntı başarı ile eklendi');
+                        } else if (args[1] == 'sil') {
+                            if (!modCheck(context)) {
+                                errorHandler(this.client, target, context['display-name'], `Permissions do not match for command execution: quote`, `Bu komutu kullanmaya izniniz yok!`);
+                                return;
+                            }
+
+                            const last = this.quote_container.length - 1;
+
+                            if (last == -1) {
+                                errorHandler(this.client, target, context['display-name'], `No quote is found in quotes list`, 'Herhangi bir alıntı bulunamadı!');
+                                return;
+                            }
+
+                            this.quote_container.splice(last, 1);
+
+                            this.fs.writeFileSync(`./${target}-quotes.json`, JSON.stringify(this.quote_container), {
+                                flag: 'w'
+                            });
+                            helpHandler(this.client, target, context['display-name'], `Last added quote is removed`, 'En son eklenen alıntı silindi!');
+                        } else {
+                            if (this.quote_container.length == 0) {
+                                errorHandler(this.client, target, context['display-name'], `No quote is found in quotes list`, 'Herhangi bir alıntı bulunamadı!');
+                                return;
+                            }
+
+                            const randIndex = Math.floor(Math.random() * this.quote_container.length);
+                            const randomQuote = this.quote_container[randIndex];
+                            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: 'numeric', second: 'numeric' };
+                            this.client.say(target, `${randomQuote.quote} - ${new Date(randomQuote.date).toLocaleDateString('tr-TR', options)}`);
                         }
                     } catch (error) {
                         errorHandler(this.client, target, context['display-name'], `An error occured: ${error.toString()}`, 'Bu komut çalıştırılamadı!');
