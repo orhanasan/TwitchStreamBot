@@ -390,7 +390,7 @@ class Commands {
                                 errorHandler(this.client, target, context['display-name'], `Permissions do not match for command execution: quote`, `Bu komutu kullanmaya izniniz yok!`);
                                 return;
                             }
-                            const spaceCount = 2;
+                            const spaceCount = 3;
 
                             var elapsed = 0;
                             var spacePos = -1;
@@ -407,6 +407,7 @@ class Commands {
 
                             const newQuote = {
                                 quote: msg.substring(spacePos),
+                                quotedFrom: args[2],
                                 date: new Date().toISOString(),
                             };
 
@@ -443,8 +444,8 @@ class Commands {
 
                             const randIndex = Math.floor(Math.random() * this.quote_container.length);
                             const randomQuote = this.quote_container[randIndex];
-                            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: 'numeric', second: 'numeric' };
-                            this.client.say(target, `${randomQuote.quote} - ${new Date(randomQuote.date).toLocaleDateString('tr-TR', options)}`);
+                            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: 'numeric', second: 'numeric', timeZoneName: 'GMT+3' };
+                            this.client.say(target, `${randomQuote.quote}, ${randomQuote.quotedFrom} - ${new Date(randomQuote.date).toLocaleDateString('tr-TR', options)}`);
                         }
                     } catch (error) {
                         errorHandler(this.client, target, context['display-name'], `An error occured: ${error.toString()}`, 'Bu komut çalıştırılamadı!');

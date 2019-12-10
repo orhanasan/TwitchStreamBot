@@ -8,7 +8,7 @@
 !announce sil <identifier>
 !counter ekle <identifier> <çıkacak ifade '%param' içerecek>
 !counter sil <identifier>
-!quote ekle <ifade>
+!quote ekle <söyleyen> <ifade>
 !quote sil
 
 "--icu-data-dir=node_modules/full-icu" flag'i ile derlenmeli!
