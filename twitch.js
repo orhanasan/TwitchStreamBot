@@ -31,11 +31,6 @@ var announceMiddleware = new AnnounceMiddleware({
     channel_name: config.botConfig.channel_name,
 }, client);
 
-var CounterMiddleware = require('./middlewares/counterSystem').counterMiddleware;
-var counterMiddleware = new CounterMiddleware({
-    channel_name: config.botConfig.channel_name,
-}, client);
-
 var CommandsMiddleware = require('./middlewares/commands').commandsMiddleware;
 var commandsMiddleware = new CommandsMiddleware({
     channel_name: config.botConfig.channel_name,

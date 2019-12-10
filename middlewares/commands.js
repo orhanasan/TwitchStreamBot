@@ -15,6 +15,7 @@ class Commands {
         this.timeout = config.timeout;
         this.client = client;
         this.command_container = [];
+        this.counter_container = [];
         this.linkSpamMiddleware = linkSpamMiddleware;
         this.blacklistMiddleware = blacklistMiddleware;
         this.announceMiddleware = announceMiddleware;
@@ -38,6 +39,11 @@ class Commands {
         if (this.fs.existsSync(`./#${this.channel_name.toLowerCase()}-commands.json`)) {
             const commandsRaw = this.fs.readFileSync(`./#${this.channel_name.toLowerCase()}-commands.json`);
             this.command_container = JSON.parse(commandsRaw);
+        }
+
+        if (this.fs.existsSync(`./#${this.channel_name.toLowerCase()}-counters.json`)) {
+            const countersRaw = this.fs.readFileSync(`./#${this.channel_name.toLowerCase()}-counters.json`);
+            this.counter_container = JSON.parse(countersRaw);
         }
 
         this.special_commands_container = [
@@ -166,7 +172,7 @@ class Commands {
                 function: (msg, target, context) => {
                     try {
                         var string = "";
-                        var totalContainer = this.command_container.concat(this.special_commands_container);
+                        var totalContainer = this.command_container.concat(this.special_commands_container).concat(this.counter_container);
                         totalContainer.forEach((value, index) => {
                             string += "!" + value['name'];
                             if (index < totalContainer.length - 1)
@@ -322,21 +328,45 @@ class Commands {
                             const name = args[2];
                             const synthax = msg.substring(spacePos);
 
-                            if (this.counterMiddleware.addCounter(name, synthax))
-                                helpHandler(this.client, target, context['display-name'], `New counter added: ${name}`, 'Sayaç başarı ile eklendi');
-                            else
+                            if (this.counter_container.findIndex((value) => { return value.name == name; }) != -1) {
                                 errorHandler(this.client, target, context['display-name'], `A word that already is in counter list is tried to be added to counter list`, 'Olan bir sayacı sayaç olarak eklediniz!');
+                                return;
+                            }
+
+                            if (synthax.search('%param') == -1) {
+                                errorHandler(this.client, target, context['display-name'], `A word that is tried to be added to counter list has not correct synthax`, 'Sentaksınızda "%param" olduğundan emin olunuz!');
+                                return;
+                            }
+
+                            this.counter_container.push({
+                                name: name,
+                                count: 0,
+                                synthax: synthax,
+                            });
+
+                            this.fs.writeFileSync(`./${target}-counters.json`, JSON.stringify(this.counter_container), {
+                                flag: 'w'
+                            });
+                            helpHandler(this.client, target, context['display-name'], `New counter added: ${name}`, 'Sayaç başarı ile eklendi');
                         } else if (args[1] == 'sil') {
                             if (!modCheck(context)) {
                                 errorHandler(this.client, target, context['display-name'], `Permissions do not match for command execution: counter`, `Bu komutu kullanmaya izniniz yok!`);
                                 return;
                             }
-                            if (this.counterMiddleware.removeCounter(args[2])) {
-                                helpHandler(this.client, target, context['display-name'], `A counter removed: ${args[2]}`, 'Sayaç başarı ile silindi');
-                            } else
+
+                            const ind = this.counter_container.findIndex((value) => { return value.name == name; });
+
+                            if (ind == -1) {
                                 errorHandler(this.client, target, context['display-name'], `A word that is not in counter list is tried to be removed from counter list`, 'Olmayan bir sayacı silmeye çalıştınız!');
-                        } else {
-                            
+                                return;
+                            }
+
+                            this.counter_container.splice(ind, 1);
+
+                            this.fs.writeFileSync(`./${target}-counters.json`, JSON.stringify(this.counter_container), {
+                                flag: 'w'
+                            });
+                            helpHandler(this.client, target, context['display-name'], `A counter removed: ${args[2]}`, 'Sayaç başarı ile silindi');
                         }
                     } catch (error) {
                         errorHandler(this.client, target, context['display-name'], `An error occured: ${error.toString()}`, 'Bu komut çalıştırılamadı!');
@@ -480,31 +510,40 @@ class Commands {
                                     }
                                     const gameString = msg.substring(6);
 
-                                    this.twitchApi.auth.refreshToken({
-                                        clientSecret: this.twitch_config.client_secret,
-                                        refreshToken: this.twitchAuth.refresh_token
-                                    }, (err, tokenData) => {
+                                    this.twitchApi.search.games({
+                                        query: gameString
+                                    }, (err, gameSearchData) => {
                                         if (err != null)
                                             throw Error(err);
-                                        this.twitchAuth = tokenData;
 
-                                        this.twitchApi.channels.channel({
-                                            auth: this.twitchAuth.access_token
-                                        }, (err2, channelData) => {
+                                        const actualName = gameSearchData.games[0].name;
+
+                                        this.twitchApi.auth.refreshToken({
+                                            clientSecret: this.twitch_config.client_secret,
+                                            refreshToken: this.twitchAuth.refresh_token
+                                        }, (err2, tokenData) => {
                                             if (err2 != null)
                                                 throw Error(err2);
+                                            this.twitchAuth = tokenData;
 
-                                            this.twitchApi.channels.updateChannel({
-                                                auth: this.twitchAuth.access_token,
-                                                channelID: channelData._id,
-                                                game: gameString
-                                            }, (err3, responseData) => {
+                                            this.twitchApi.channels.channel({
+                                                auth: this.twitchAuth.access_token
+                                            }, (err3, channelData) => {
                                                 if (err3 != null)
                                                     throw Error(err3);
 
-                                                this.client.say(target, `Oyun ${responseData.game} yapıldı!`);
-                                            })
-                                        })
+                                                this.twitchApi.channels.updateChannel({
+                                                    auth: this.twitchAuth.access_token,
+                                                    channelID: channelData._id,
+                                                    game: actualName
+                                                }, (err4, responseData) => {
+                                                    if (err4 != null)
+                                                        throw Error(err4);
+
+                                                    this.client.say(target, `Oyun ${responseData.game} yapıldı!`);
+                                                });
+                                            });
+                                        });
                                     });
                                 } else {
                                     this.twitchApi.auth.refreshToken({
@@ -693,6 +732,21 @@ class Commands {
                 } else
                     errorHandler(this.client, target, context['display-name'], `Wrong command execution: ${element.name}`, `Yanlış komut kullanımı! ${element.argCount} tane argüman girmeniz gerekiyor!`);
                 return false;
+            }
+        }
+
+        // Check for counters
+        for (let index = 0; index < this.counter_container.length; index++) {
+            const element = this.counter_container[index];
+
+            if ('!' + element.name == splitInput[0]) {
+                this.counter_container[index].count++;
+                this.client.say(target, element.synthax.replace(new RegExp('%param', 'g'), this.counter_container[index].count));
+
+                this.fs.writeFileSync(`./${target}-counters.json`, JSON.stringify(this.counter_container), {
+                    flag: 'w'
+                });
+                return true;
             }
         }
     }
