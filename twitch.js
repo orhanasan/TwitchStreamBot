@@ -54,11 +54,12 @@ const messageHandler = (target, context, msg, self) => {
 }
 
 const connectedHandler = (addr, port) => {
-    console.log(`* Connected to ${addr}:${port}`);
-    // client.say('#' + config.botConfig.channel_name, 'Yılmadım ayaktayım! ResidentSleeper');
+    console.log('Twitch Bot is ready and up!');
 }
 
 client.on('message', messageHandler);
 client.on('connected', connectedHandler);
 
 client.connect();
+
+exports.twitchClient = client;

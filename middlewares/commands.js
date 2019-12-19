@@ -6,6 +6,7 @@ const {
 
 class Commands {
     constructor(config, client, linkSpamMiddleware, blacklistMiddleware, announceMiddleware) {
+        // Variables
         this.channel_name = config.channel_name;
         this.client_id = config.client_id;
         this.spotify_config = config.spotifyConfig;
@@ -36,7 +37,10 @@ class Commands {
             }
         };
         this.twitchAuth = null;
+        this.isTwitchAuthenticated = false;
+        this.isSpotifyAuthenticated = false;
 
+        // Initialization
         if (this.fs.existsSync(`./#${this.channel_name.toLowerCase()}-commands.json`)) {
             const commandsRaw = this.fs.readFileSync(`./#${this.channel_name.toLowerCase()}-commands.json`);
             this.command_container = JSON.parse(commandsRaw);
@@ -361,6 +365,7 @@ class Commands {
                                 return;
                             }
 
+                            const name = args[2];
                             const ind = this.counter_container.findIndex((value) => { return value.name == name; });
 
                             if (ind == -1) {
@@ -460,6 +465,11 @@ class Commands {
 
             if (!this.is_local) {
                 app.get('/register_spotify', (req, res) => {
+                    if (this.isSpotifyAuthenticated) {
+                        res.statusCode = 401;
+                        res.send('Already authenticated!');
+                        return;
+                    }
                     var scopes = ['user-read-private', 'user-read-email', 'user-read-currently-playing', 'user-read-playback-state'];
                     var spotifyAuthorizeURL = this.spotifyApi.createAuthorizeURL(scopes, 'state');
 
@@ -467,6 +477,12 @@ class Commands {
                 });
 
                 app.get('/register_twitch', (req, res) => {
+                    if (this.isTwitchAuthenticated) {
+                        res.statusCode = 401;
+                        res.send('Already authenticated!');
+                        return;
+                    }
+
                     let twitchOauth = require('simple-oauth2').create(this.twitchTokenOption);
                     var scopes = ['clips:edit', 'channel_editor', 'channel_subscriptions', 'channel_read', 'channel_subscriptions', 'channel_commercial'];
                     const twitchAuthorizeURL = twitchOauth.authorizationCode.authorizeURL({
@@ -496,6 +512,7 @@ class Commands {
 
                     res.send('Spotify is configured!');
                     console.log('Spotify tokens are obtained!');
+                    this.isSpotifyAuthenticated = true;
                 })
             });
 
@@ -514,6 +531,7 @@ class Commands {
                     this.twitchAuth = data;
                     res.send('Twitch is configured!');
                     console.log('Twitch tokens are obtained!')
+                    this.isTwitchAuthenticated = true;
                 });
             });
 

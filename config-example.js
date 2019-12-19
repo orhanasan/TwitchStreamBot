@@ -33,6 +33,10 @@ exports.twitchConfig = {
     client_secret: 'TWITCH API CLIENT SECRET',
 };
 
+exports.discordConfig = {
+    bot_token: 'DISCORD API BOT TOKEN',
+};
+
 exports.serverConfig = {
     hostname: 'localhost',
     port: 30000,
