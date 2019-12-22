@@ -596,6 +596,24 @@ class Commands {
                         }
                     },
                     {
+                        name: 'currentpl',
+                        function: (msg, target, context) => {
+                            this.spotifyApi.refreshAccessToken().then((data) => {
+                                this.spotifyApi.setAccessToken(data.body['access_token']);
+                                this.spotifyApi.getMyCurrentPlaybackState({}).then((data2) => {
+                                    const response = data2.body.context;
+                                    if (data2.body.is_playing) {
+                                        this.client.say(target, `Şu an çalan playlist URL'i: ${response.external_urls.spotify}`);
+                                    } else {
+                                        errorHandler(this.client, target, context['display-name'], `Currently playing playlist cannot be found.`, 'Çalınan playlist bulunamadı!');
+                                    }
+                                }, (err) => {
+                                    errorHandler(this.client, target, context['display-name'], err.toString(), 'Çalınan playlist bulunamadı!');
+                                });
+                            })
+                        }
+                    },
+                    {
                         name: 'game',
                         function: (msg, target, context) => {
                             try {
